@@ -9,8 +9,9 @@ mod = 2 ** 24
 
 r_carry = RCarry(mod, 10, reg)
 len_mod = len(str(mod))
-f = open("rcarry_generate.txt", "w")
-for i in range(int(1e5)):
-    f.writelines('{0:.5e}\n'.format(r_carry.generate()))
+set1 = r_carry.generate_set((10,12))
+set2 = np.empty((5, 2, 3))
 
-f.close()
+r_carry.fill_array(set2)
+
+print(set2)

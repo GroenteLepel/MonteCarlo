@@ -1,11 +1,5 @@
 from DataAnalyser import DataAnalyser
 
-data_analyser = DataAnalyser("rcarry_generate.txt", 10)
-a = data_analyser.data
-print(data_analyser.calc_chisquared())
+data_analyser = DataAnalyser(1000, 2)
 
-data_analyser.generate_next_set()
-b = data_analyser.data
-print(data_analyser.calc_chisquared())
-c = a - b
-print(c)
+data_analyser.plot_data()
