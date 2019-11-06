@@ -3,7 +3,7 @@ import numpy as np
 
 class RCarry:
 
-    def __init__(self, modulus, shift_parameter, register):
+    def __init__(self, modulus: int, shift_parameter: int, register):
         self.modulus = modulus
         self.shift_param = shift_parameter
         self.register = register
@@ -55,17 +55,29 @@ class RCarry:
             self.__shift_register(new_x)
             return new_x / self.modulus
 
-    def generate_set(self, n_points):
+    def generate_set(self, shape: tuple):
         """
         Generate a set of n_points.
+        :param shape:
         :param n_points:
         :return: the set of pseudo random points in an ndarray
         """
-        set = np.zeros(n_points)
-        for i in range(n_points):
-            set[i] = self.generate()
+        number_set = np.empty(shape)
+        with np.nditer(number_set, op_flags=['readwrite']) as it:
+            for x in it:
+                x[...] = self.generate()
 
-        return set
+        return number_set
+
+    def fill_array(self, array: np.ndarray):
+        """
+        Fill an array of any shape with random numbers.
+        :param array:
+        :return:
+        """
+        with np.nditer(array, op_flags=['readwrite']) as it:
+            for x in it:
+                x[...] = self.generate()
 
     def __str__(self):
         return "PRNG RCarry with modulus " + str(
