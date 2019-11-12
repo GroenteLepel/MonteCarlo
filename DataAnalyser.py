@@ -1,6 +1,9 @@
 import numpy as np
 from RNGenerator import RCarry
 import matplotlib.pyplot as plt
+from itertools import combinations
+from functools import reduce
+import operator
 
 
 class DataAnalyser:
@@ -37,8 +40,22 @@ class DataAnalyser:
             chi_squared += (d - expected_n) ** 2 / expected_n
         return chi_squared
 
-    # def calc_discrepancy(self):
+    def calc_discrepancy(self):
+        expectation = (2 ** (-self.n_dims) - 3 ** (-self.n_dims)) / \
+                      self.n_points
 
+        # example, i = 1, j = 2
+        val1 = 1 - np.max(self.data[:, 0], self.data[:][0])
+        val2 = 1 - np.max(self.data[1][1], self.data[2][1])
+        reduce(operator.mul, (val1, val2))
+
+        for i in range(self.n_points):
+            for j in range(self.n_points):
+                for d in range(self.n_dims):
+                    val = 1 - np.max(self.data[i][d], self.data[j][d])
+            term1 = reduce(operator.mul, val)
+
+        return expectation
 
     def generate_next_set(self):
         self.register = self.modulus * self.data[-24:]
