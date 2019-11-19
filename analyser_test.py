@@ -1,6 +1,6 @@
 from DataAnalyser import DataAnalyser
 
-data_analyser = DataAnalyser(1000, 2)
+da = DataAnalyser(1000, 2)
 
-data_analyser.plot_data()
-print(data_analyser.calc_discrepancy())
+da.plot_data()
+da.calc_discrepancy()

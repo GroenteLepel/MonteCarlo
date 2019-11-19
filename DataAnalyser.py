@@ -20,6 +20,7 @@ class DataAnalyser:
         self.n_points = n_points
         self.n_dims = n_dims
         self.data = generator.generate_set((n_points, n_dims))
+        # self.data = np.random.rand(n_points, n_dims)
 
     def hist_data(self, n_bins: int):
         """
@@ -41,21 +42,45 @@ class DataAnalyser:
         return chi_squared
 
     def calc_discrepancy(self):
+        """
+        Calculates the quadratic discrepancy of the dataset self.data.
+
+        Tells you something about the uniformity of the point set. A low
+        discrepancy means that the points are neatly distributed. This is quite
+        an equation to calculate, so is not that optimal to use for optimising
+        the point set.
+        :return:
+        """
         expectation = (2 ** (-self.n_dims) - 3 ** (-self.n_dims)) / \
                       self.n_points
+        print("Expected discrepancy:", expectation)
 
-        # example, i = 1, j = 2
-        val1 = 1 - np.max(self.data[:, 0], self.data[:][0])
-        val2 = 1 - np.max(self.data[1][1], self.data[2][1])
-        reduce(operator.mul, (val1, val2))
-
+        # The problem can be viewed as a matrix containing all the possible
+        #  combinations between self.data with itself. This means that the
+        #  matrix is symmetric, so we can save time by calculating one half
+        #  of the matrix and take these components twice.
+        first_term, second_term = 0, 0
         for i in range(self.n_points):
-            for j in range(self.n_points):
+            for j in range(i, self.n_points):
+                val = np.zeros(2)
                 for d in range(self.n_dims):
-                    val = 1 - np.max(self.data[i][d], self.data[j][d])
-            term1 = reduce(operator.mul, val)
+                    val[d] = 1 - np.maximum(self.data[i][d], self.data[j][d])
 
-        return expectation
+                if j == i:
+                    # All the diagonal terms must only be taken once
+                    first_term += reduce(operator.mul, val)
+                else:
+                    first_term += 2 * reduce(operator.mul, val)
+
+            second_term += reduce(operator.mul, 1 - self.data[i] ** 2)
+
+        # This is the quadratic discrepancy, L_2^*.
+        discrepancy = first_term / (self.n_points ** 2) - \
+                      2 * second_term / (2 ** self.n_dims * self.n_points) + \
+                      (1. / 3) ** self.n_dims
+        print("Calculated discrepancy:", discrepancy)
+
+        return discrepancy
 
     def generate_next_set(self):
         self.register = self.modulus * self.data[-24:]
