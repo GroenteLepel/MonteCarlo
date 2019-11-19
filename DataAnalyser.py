@@ -1,9 +1,9 @@
 import numpy as np
 from RNGenerator import RCarry
 import matplotlib.pyplot as plt
-from itertools import combinations
 from functools import reduce
 import operator
+from sklearn.neighbors import NearestNeighbors
 
 
 class DataAnalyser:
@@ -82,6 +82,28 @@ class DataAnalyser:
 
         return discrepancy
 
+    def find_neighbors(self):
+        nbrs = NearestNeighbors(n_neighbors=6, algorithm='ball_tree')
+        nbrs.fit(self.data)
+        distances, indices = nbrs.kneighbors(self.data)
+
+        return distances, indices
+
+    def replace_points(self):
+        dists, ind = self.find_neighbors()
+        # Take one point for starters, first point of the array.
+        to_replace = self.data[ind[0, 0]]
+        furthest_point = self.data[ind[0, -1]]
+        distance = dists[0, -1]
+
+        # angle =
+
+        xy_distance = furthest_point - to_replace
+        adjustment = -0.5 * xy_distance
+        new_x = to_replace + adjustment
+
+        self.data[ind[:, 0]] = new_x
+
     def generate_next_set(self):
         self.register = self.modulus * self.data[-24:]
         print("New register: ")
@@ -97,4 +119,9 @@ class DataAnalyser:
 
         fig, ax = plt.subplots()
         ax.scatter(self.data[:, 0], self.data[:, 1])
+
+        d, i = self.find_neighbors()
+        nn = self.data[i[0]]
+        ax.scatter(nn[:, 0], nn[:, 1], marker='+')
+        ax.scatter(nn[:, 0].mean(), nn[:, 1].mean(), marker='x')
         fig.show()
