@@ -53,7 +53,7 @@ class DataAnalyser:
         """
         expectation = (2 ** (-self.n_dims) - 3 ** (-self.n_dims)) / \
                       self.n_points
-        print("Expected discrepancy:", expectation)
+        # print("Expected discrepancy:", expectation)
 
         # The problem can be viewed as a matrix containing all the possible
         #  combinations between self.data with itself. This means that the
@@ -82,27 +82,81 @@ class DataAnalyser:
 
         return discrepancy
 
-    def find_neighbors(self):
-        nbrs = NearestNeighbors(n_neighbors=6, algorithm='ball_tree')
+    def find_neighbors(self, n_neighbors=10):
+        nbrs = NearestNeighbors(n_neighbors=n_neighbors, algorithm='ball_tree')
         nbrs.fit(self.data)
         distances, indices = nbrs.kneighbors(self.data)
 
         return distances, indices
 
-    def replace_points(self):
-        dists, ind = self.find_neighbors()
-        # Take one point for starters, first point of the array.
-        to_replace = self.data[ind[0, 0]]
-        furthest_point = self.data[ind[0, -1]]
-        distance = dists[0, -1]
+    def _gulliver_derivative_2d(self, x, y, s=0.5):
+        """
+        Calculates the calculated value of the derivative of the Gulliver
+        diaphony for a point (x, y) in the x direction. For the y direction,
+        simply swap the values as input, since the derivatives are the same.
+        :param x: variable in which the derivative is taken.
+        :param y: variable in which the derivative is NOT taken.
+        :param s: constant value between zero and one. default is 0.5
 
-        # angle =
+        :return: a float value d beta / d x
+        """
+        n_dim = 2
+        constant = (-4 * np.pi * s * (1 - s ** 2) ** 2) / (
+                ((1 + s) / (1 - s)) ** n_dim - 1)
+        x_term = np.sin(2 * np.pi * x) / (
+                (s ** 2 - 2 * s * np.cos(2 * np.pi * x) + 1) ** 2)
 
-        xy_distance = furthest_point - to_replace
-        adjustment = -0.5 * xy_distance
-        new_x = to_replace + adjustment
+        y_term = 1 / (
+                s ** 2 - 2 * s * np.cos(2 * np.pi * y) + 1)
 
-        self.data[ind[:, 0]] = new_x
+        return constant * x_term * y_term
+
+    def shift_points(self, step_size=1e-4):
+        """
+        Calculates the derivative in beta in both x and y directions per data
+        point and shifts this point in the direction where this derivative is
+        most negative with step size step_size * derivative.
+
+        :return:
+        """
+
+        dist, ind = self.find_neighbors()
+        mean_dist = dist.mean(axis=1)
+        small_mean = mean_dist < 0.035
+
+        for i in range(self.n_points):
+            # 1. determine points to derive beta:
+            #     Since the points which are located very far away from the
+            #     point which we want to shift do not contribute much to the
+            #     derivative, we will skip these. We take a couple of the
+            #     neirest neighbours.
+            # dists, ind = self.find_neighbors(n_neighbors=50)
+
+            to_replace = self.data[i]
+            neighbors = self.data[np.arange(self.n_points) != i]
+            xy_distances = to_replace - neighbors
+
+            # 2. calculate the diaphony by calculating derivative in beta
+            db_dx = self._gulliver_derivative_2d(xy_distances[:, 0],
+                                                 xy_distances[:, 1])
+            db_dy = self._gulliver_derivative_2d(xy_distances[:, 1],
+                                                 xy_distances[:, 0])
+
+            # 3. shift the point in the new direction
+            dx = -step_size * db_dx.sum()
+            dy = -step_size * db_dy.sum()
+
+            if small_mean[i]:
+                dx *= 3
+                dy *= 3
+
+            new_x = to_replace + np.array([dx, dy])
+            contains_overflow = new_x > 1.0
+            if contains_overflow.any():
+                new_x[contains_overflow] = 1.0
+
+            # self.data[ind[i, 0]] = new_x
+            self.data[i] = new_x
 
     def generate_next_set(self):
         self.register = self.modulus * self.data[-24:]
@@ -124,4 +178,8 @@ class DataAnalyser:
         nn = self.data[i[0]]
         ax.scatter(nn[:, 0], nn[:, 1], marker='+')
         ax.scatter(nn[:, 0].mean(), nn[:, 1].mean(), marker='x')
+
+        ax.set_xlim((0, 1))
+        ax.set_ylim((0, 1))
+
         fig.show()
